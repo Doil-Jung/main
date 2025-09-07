@@ -234,15 +234,20 @@ def write_csv_row(
 
 
 def run_once(args: argparse.Namespace) -> Tuple[Path, Dict[str, Any]]:
-    image_path = capture_image(
-        device_index=args.device,
-        frame_width=args.width,
-        frame_height=args.height,
-        warmup_frames=args.warmup,
-        timeout_seconds=args.timeout,
-        output_directory=Path(args.output_dir),
-        filename_prefix="thermo",
-    )
+    if args.image_file:
+        image_path = Path(args.image_file)
+        if not image_path.exists():
+            raise RuntimeError(f"Image file not found: {image_path}")
+    else:
+        image_path = capture_image(
+            device_index=args.device,
+            frame_width=args.width,
+            frame_height=args.height,
+            warmup_frames=args.warmup,
+            timeout_seconds=args.timeout,
+            output_directory=Path(args.output_dir),
+            filename_prefix="thermo",
+        )
     data_url = image_file_to_data_url(image_path)
     result = extract_temperature_with_gpt(data_url, model=args.model)
     timestamp_iso = dt.datetime.now().isoformat(timespec="seconds")
@@ -281,6 +286,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--model", type=str, default="gpt-4o-mini", help="OpenAI model to use for vision parsing")
     parser.add_argument("--interval", type=int, default=0, help="If > 0, seconds between periodic captures")
     parser.add_argument("--once", action="store_true", help="Force single run even if --interval is set")
+    parser.add_argument("--image-file", type=str, help="Use existing image file instead of webcam capture")
     return parser
 
 
